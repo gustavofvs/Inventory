@@ -1,4 +1,4 @@
-# Inventário (Order3D)
+# Inventário (Order)
 
 Projeto desenvolvido em poucas horas de tédio, principalmente para desenferrujar no JavaScript/TypeScript, já que tenho focado mais em **Rust**, **Java** e **C#** ultimamente.
 Apesar de ser um "treino rápido", aproveitei para implementar uma arquitetura limpa e escalável, aplicando padrões robustos como MVC, validação com Zod e Hooks customizados.
