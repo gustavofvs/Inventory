@@ -2,20 +2,10 @@
   "name": "inventory",
   "version": "1.0.0",
   "private": true,
-  "description": "Inventory — Full-stack inventory management system",
   "scripts": {
     "dev:web": "pnpm --filter web dev",
     "dev:api": "pnpm --filter api dev",
     "build:web": "pnpm --filter web build",
     "lint": "pnpm --filter web lint"
-  },
-  "keywords": [
-    "inventory",
-    "nextjs",
-    "express",
-    "sqlite",
-    "monorepo"
-  ],
-  "author": "",
-  "license": "MIT"
+  }
 }

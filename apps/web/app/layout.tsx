@@ -8,11 +8,8 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
-  title: {
-    default: "Inventory",
-    template: "%s — Inventory",
-  },
-  description: "Full-stack inventory management system",
+  title: "Inventário",
+  description: "Sistema de inventário",
 };
 
 export default function RootLayout({
