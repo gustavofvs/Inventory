@@ -28,6 +28,7 @@ Base URL: `http://localhost:3001`
 
 - `GET /produtos` — retorna lista de produtos
 - `POST /produtos` — cria produto novo
+- `DELETE /produtos/:id` — remove um produto
 
 ```json
 {

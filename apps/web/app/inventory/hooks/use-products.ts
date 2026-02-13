@@ -44,7 +44,18 @@ export function useProducts() {
     await carregar()
   }, [carregar])
 
+  const remover = useCallback(async (id: number) => {
+    const res = await fetch(`${API}/produtos/${id}`, { method: "DELETE" })
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      throw new Error(body.error || "falha ao remover produto")
+    }
+
+    await carregar()
+  }, [carregar])
+
   useEffect(() => { carregar() }, [carregar])
 
-  return { produtos, loading, carregar, criar }
+  return { produtos, loading, carregar, criar, remover }
 }

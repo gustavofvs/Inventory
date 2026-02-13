@@ -90,6 +90,25 @@ app.post("/produtos", async (req, res) => {
     }
 });
 
+// DELETE /produtos/:id
+app.delete("/produtos/:id", async (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) {
+        return res.status(400).json({ error: "id inválido" });
+    }
+
+    try {
+        const result = await run("DELETE FROM stock WHERE productID = ?", [id]);
+        if (result.changes === 0) {
+            return res.status(404).json({ error: "produto não encontrado" });
+        }
+        res.json({ message: "produto removido" });
+    } catch (err) {
+        console.error("erro ao deletar produto:", err.message);
+        res.status(500).json({ error: "falha ao deletar produto" });
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`api rodando em http://localhost:${PORT}`);
 });

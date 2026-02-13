@@ -9,7 +9,7 @@ import { toast, Toaster } from "sonner"
 import { useProducts } from "./hooks/use-products"
 
 export default function InventoryPage() {
-    const { produtos, loading, criar } = useProducts()
+    const { produtos, loading, criar, remover } = useProducts()
     const [openCriar, setOpenCriar] = useState(false)
 
     async function handleCriar(e: React.FormEvent<HTMLFormElement>) {
@@ -26,6 +26,15 @@ export default function InventoryPage() {
             toast.success("Produto criado!")
         } catch (err) {
             toast.error(err instanceof Error ? err.message : "Erro ao criar produto")
+        }
+    }
+
+    async function handleRemover(id: number) {
+        try {
+            await remover(id)
+            toast.success("Produto removido!")
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Erro ao remover")
         }
     }
 
@@ -57,12 +66,24 @@ export default function InventoryPage() {
                             </p>
                         ) : (
                             produtos.map((p) => (
-                                <div key={p.productID} className="border-b py-2 last:border-b-0">
-                                    <p className="font-bold">{p.nameProduct}</p>
-                                    <p className="text-sm text-muted-foreground">
-                                        Qtd: {p.qntdProduct} — R${" "}
-                                        {p.priceProduct.toFixed(2)}
-                                    </p>
+                                <div key={p.productID} className="flex items-center justify-between border-b py-2 last:border-b-0">
+                                    <div className="min-w-0 flex-1">
+                                        <p className="truncate font-bold" title={p.nameProduct}>
+                                            {p.nameProduct}
+                                        </p>
+                                        <p className="text-sm text-muted-foreground">
+                                            Qtd: {p.qntdProduct} — R${" "}
+                                            {p.priceProduct.toFixed(2)}
+                                        </p>
+                                    </div>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="ml-2 shrink-0 cursor-pointer text-destructive hover:text-destructive"
+                                        onClick={() => handleRemover(p.productID)}
+                                    >
+                                        Remover
+                                    </Button>
                                 </div>
                             ))
                         )}
@@ -88,7 +109,7 @@ export default function InventoryPage() {
                         <div className="grid gap-4 py-4">
                             <div className="grid gap-2">
                                 <Label htmlFor="nome">Nome do Produto</Label>
-                                <Input id="nome" name="nome" placeholder="Ex: Suporte GPU" required />
+                                <Input id="nome" name="nome" placeholder="Ex: Suporte GPU" maxLength={200} required />
                             </div>
                             <div className="grid gap-2">
                                 <Label htmlFor="quantidade">Estoque</Label>
