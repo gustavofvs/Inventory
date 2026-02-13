@@ -1,41 +1,52 @@
-# Inventário
+# Inventário (Order3D)
 
-Sistema de controle de estoque com Express + SQLite no backend e Next.js no frontend, organizado como monorepo com pnpm workspaces.
+Projeto desenvolvido em poucas horas de tédio, principalmente para desenferrujar no JavaScript/TypeScript, já que tenho focado mais em **Rust**, **Java** e **C#** ultimamente.
+Apesar de ser um "treino rápido", aproveitei para implementar uma arquitetura limpa e escalável, aplicando padrões robustos como MVC, validação com Zod e Hooks customizados.
 
-## Stack
-
-- **Frontend:** Next.js 16, React 19, Tailwind CSS v4, Shadcn UI
-- **Backend:** Express 5, SQLite 3
-- **Tooling:** pnpm workspaces, TypeScript, Nodemon
+Stack principal:
+- **Frontend**: Next.js 16, Tailwind CSS, Shadcn UI
+- **Backend**: Express 5, SQLite, Zod
+ 
+## Estrutura
+ 
+ O projeto é um monorepo gerenciado via `pnpm workspaces`:
+- `apps/api`: Backend REST com SQLite.
+- `apps/web`: Frontend Next.js + Tailwind + Shadcn/ui.
 
 ## Como rodar
+
+Instale as dependências na raiz:
 
 ```bash
 pnpm install
 ```
 
+Inicie os serviços (em terminais separados ou via ferramentas como `concurrently` se preferir):
+
 ```bash
-# terminal 1 - api na porta 3001
+# API (porta 3001)
 pnpm dev:api
 
-# terminal 2 - frontend na porta 3000
+# Frontend (porta 3000)
 pnpm dev:web
 ```
 
-## API
+## API Endpoints
 
-Base URL: `http://localhost:3001`
+Base: `http://localhost:3001/api`
 
-- `GET /produtos` — retorna lista de produtos
-- `POST /produtos` — cria produto novo
-- `DELETE /produtos/:id` — remove um produto
+| Método | Rota | Descrição |
+| :--- | :--- | :--- |
+| `GET` | `/products` | Lista todos os produtos |
+| `POST` | `/products` | Cria um novo produto |
+| `DELETE` | `/products/:id` | Remove um produto |
+
+### Exemplo de Payload (POST)
 
 ```json
 {
-  "nameProduct": "Suporte GPU",
-  "qntdProduct": 10,
-  "priceProduct": 49.90
+  "name": "Suporte GPU Vertical",
+  "quantity": 5,
+  "price": 89.90
 }
 ```
-
-Validação: nome obrigatório (max 200 chars), quantidade inteira >= 0, preço >= 0. Queries parametrizadas contra SQL injection.

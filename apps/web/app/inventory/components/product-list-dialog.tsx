@@ -3,21 +3,22 @@
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { toast } from "sonner"
-import type { Produto } from "../hooks/use-products"
+import type { Product } from "../hooks/use-products"
+import { Trash2 } from "lucide-react"
 
 interface ProductListDialogProps {
-    produtos: Produto[]
-    loading: boolean
-    onRemover: (id: number) => Promise<void>
+    products: Product[]
+    isLoading: boolean
+    onDelete: (id: number) => Promise<void>
 }
 
-export function ProductListDialog({ produtos, loading, onRemover }: ProductListDialogProps) {
-    async function handleRemover(id: number) {
+export function ProductListDialog({ products, isLoading, onDelete }: ProductListDialogProps) {
+    async function handleDelete(id: number) {
         try {
-            await onRemover(id)
-            toast.success("Produto removido!")
-        } catch (err) {
-            toast.error(err instanceof Error ? err.message : "Erro ao remover")
+            await onDelete(id)
+            toast.success("Product deleted successfully")
+        } catch (err: any) {
+            toast.error(err.message || "Failed to delete product")
         }
     }
 
@@ -25,47 +26,50 @@ export function ProductListDialog({ produtos, loading, onRemover }: ProductListD
         <Dialog>
             <DialogTrigger asChild>
                 <Button variant="outline" className="cursor-pointer border border-primary">
-                    Consultar Produtos
+                    View Inventory
                 </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-md">
                 <DialogHeader>
-                    <DialogTitle>Produtos Cadastrados</DialogTitle>
+                    <DialogTitle>Current Inventory</DialogTitle>
                     <DialogDescription>
-                        Confira todos os produtos disponíveis abaixo.
+                        Manage your products below.
                     </DialogDescription>
                 </DialogHeader>
-                <div className="no-scrollbar -mx-4 max-h-[50vh] overflow-y-auto px-4">
-                    {loading ? (
-                        <p className="py-8 text-center text-sm text-muted-foreground">
-                            Carregando...
-                        </p>
-                    ) : produtos.length === 0 ? (
-                        <p className="py-8 text-center text-sm text-muted-foreground">
-                            Nenhum produto cadastrado.
-                        </p>
+                <div className="no-scrollbar -mx-6 h-[400px] overflow-y-auto px-6">
+                    {isLoading ? (
+                        <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                            Loading products...
+                        </div>
+                    ) : products.length === 0 ? (
+                        <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                            No products found.
+                        </div>
                     ) : (
-                        produtos.map((p) => (
-                            <div key={p.productID} className="flex items-center justify-between border-b py-2 last:border-b-0">
-                                <div className="min-w-0 flex-1">
-                                    <p className="truncate font-bold" title={p.nameProduct}>
-                                        {p.nameProduct}
-                                    </p>
-                                    <p className="text-sm text-muted-foreground">
-                                        Qtd: {p.qntdProduct} — R${" "}
-                                        {p.priceProduct.toFixed(2)}
-                                    </p>
+                        <div className="divide-y">
+                            {products.map((product) => (
+                                <div key={product.id} className="flex items-center justify-between py-4">
+                                    <div className="min-w-0 flex-1 pr-4">
+                                        <p className="truncate font-medium text-foreground" title={product.name}>
+                                            {product.name}
+                                        </p>
+                                        <p className="text-sm text-muted-foreground">
+                                            Qty: {product.quantity} • {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(product.price)}
+                                        </p>
+                                    </div>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                        onClick={() => handleDelete(product.id)}
+                                        title="Delete product"
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                        <span className="sr-only">Delete</span>
+                                    </Button>
                                 </div>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="ml-2 shrink-0 cursor-pointer text-destructive hover:text-destructive"
-                                    onClick={() => handleRemover(p.productID)}
-                                >
-                                    Remover
-                                </Button>
-                            </div>
-                        ))
+                            ))}
+                        </div>
                     )}
                 </div>
             </DialogContent>

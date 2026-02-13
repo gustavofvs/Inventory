@@ -6,29 +6,33 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, Di
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
-import type { Produto } from "../hooks/use-products"
+import type { Product } from "../hooks/use-products"
 
 interface CreateProductDialogProps {
-    onCriar: (data: Omit<Produto, "productID">) => Promise<void>
+    onCreate: (data: Omit<Product, "id">) => Promise<boolean>
 }
 
-export function CreateProductDialog({ onCriar }: CreateProductDialogProps) {
+export function CreateProductDialog({ onCreate }: CreateProductDialogProps) {
     const [open, setOpen] = useState(false)
+    const [isSubmitting, setIsSubmitting] = useState(false)
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault()
         const fd = new FormData(e.currentTarget)
 
         try {
-            await onCriar({
-                nameProduct: fd.get("nome") as string,
-                qntdProduct: Number(fd.get("quantidade")),
-                priceProduct: Number(fd.get("preco")),
+            setIsSubmitting(true)
+            await onCreate({
+                name: fd.get("name") as string,
+                quantity: Number(fd.get("quantity")),
+                price: Number(fd.get("price")),
             })
             setOpen(false)
-            toast.success("Produto criado!")
-        } catch (err) {
-            toast.error(err instanceof Error ? err.message : "Erro ao criar produto")
+            toast.success("Product created successfully!")
+        } catch (err: any) {
+            toast.error(err.message || "Failed to create product")
+        } finally {
+            setIsSubmitting(false)
         }
     }
 
@@ -36,36 +40,38 @@ export function CreateProductDialog({ onCriar }: CreateProductDialogProps) {
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
                 <Button variant="outline" className="cursor-pointer border border-primary">
-                    Criar Produto
+                    New Product
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-sm">
                 <form onSubmit={handleSubmit}>
                     <DialogHeader>
-                        <DialogTitle>Novo Produto</DialogTitle>
+                        <DialogTitle>Add Product</DialogTitle>
                         <DialogDescription>
-                            Preencha os dados para cadastrar um produto.
+                            Enter the product details below.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                         <div className="grid gap-2">
-                            <Label htmlFor="nome">Nome do Produto</Label>
-                            <Input id="nome" name="nome" placeholder="Ex: Suporte GPU" maxLength={200} required />
+                            <Label htmlFor="name">Name</Label>
+                            <Input id="name" name="name" placeholder="Ex: RTX 4090" maxLength={200} required />
                         </div>
                         <div className="grid gap-2">
-                            <Label htmlFor="quantidade">Estoque</Label>
-                            <Input id="quantidade" name="quantidade" type="number" min={0} placeholder="0" required />
+                            <Label htmlFor="quantity">Quantity</Label>
+                            <Input id="quantity" name="quantity" type="number" min={0} placeholder="0" required />
                         </div>
                         <div className="grid gap-2">
-                            <Label htmlFor="preco">Valor (R$)</Label>
-                            <Input id="preco" name="preco" type="number" min={0} step="0.01" placeholder="0.00" required />
+                            <Label htmlFor="price">Price (R$)</Label>
+                            <Input id="price" name="price" type="number" min={0} step="0.01" placeholder="0.00" required />
                         </div>
                     </div>
                     <DialogFooter>
                         <DialogClose asChild>
-                            <Button variant="outline" type="button">Cancelar</Button>
+                            <Button variant="outline" type="button">Cancel</Button>
                         </DialogClose>
-                        <Button type="submit">Salvar</Button>
+                        <Button type="submit" disabled={isSubmitting}>
+                            {isSubmitting ? "Saving..." : "Save"}
+                        </Button>
                     </DialogFooter>
                 </form>
             </DialogContent>

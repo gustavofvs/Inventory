@@ -1,61 +1,71 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import { toast } from "sonner"
+import { api, ApiError } from "@/lib/api"
 
-export interface Produto {
-  productID: number
-  nameProduct: string
-  qntdProduct: number
-  priceProduct: number
+export interface Product {
+  id: number
+  name: string
+  quantity: number
+  price: number
 }
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001"
-
 export function useProducts() {
-  const [produtos, setProdutos] = useState<Produto[]>([])
-  const [loading, setLoading] = useState(true)
+  const [products, setProducts] = useState<Product[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
-  const carregar = useCallback(async () => {
+  const fetchProducts = useCallback(async () => {
+    const controller = new AbortController();
+
     try {
-      setLoading(true)
-      const res = await fetch(`${API}/produtos`)
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      setProdutos(await res.json())
+      setIsLoading(true)
+      const data = await api.get<Product[]>("/products", controller.signal)
+      setProducts(data)
     } catch (err) {
-      console.error("falha ao buscar produtos:", err)
+      if (err instanceof Error && err.name === 'AbortError') return;
+
+      console.error("Fetch error:", err)
+      toast.error("Failed to load inventory")
     } finally {
-      setLoading(false)
+      setIsLoading(false)
     }
+
+    return () => controller.abort();
   }, [])
 
-  const criar = useCallback(async (data: Omit<Produto, "productID">) => {
-    const res = await fetch(`${API}/produtos`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    })
-
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}))
-      throw new Error(body.error || "falha ao criar produto")
+  const createProduct = useCallback(async (data: Omit<Product, "id">) => {
+    try {
+      await api.post("/products", data)
+      await fetchProducts()
+      return true
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : "Failed to create product";
+      throw new Error(message);
     }
+  }, [fetchProducts])
 
-    // recarrega a lista depois de criar
-    await carregar()
-  }, [carregar])
-
-  const remover = useCallback(async (id: number) => {
-    const res = await fetch(`${API}/produtos/${id}`, { method: "DELETE" })
-
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}))
-      throw new Error(body.error || "falha ao remover produto")
+  const deleteProduct = useCallback(async (id: number) => {
+    try {
+      await api.delete(`/products/${id}`)
+      await fetchProducts()
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : "Failed to delete product";
+      throw new Error(message);
     }
+  }, [fetchProducts])
 
-    await carregar()
-  }, [carregar])
+  useEffect(() => {
+    const abort = fetchProducts()
+    // @ts-ignore
+    return () => abort?.()
+  }, [fetchProducts])
 
-  useEffect(() => { carregar() }, [carregar])
-
-  return { produtos, loading, carregar, criar, remover }
+  return {
+    products,
+    isLoading,
+    fetchProducts,
+    createProduct,
+    deleteProduct
+  }
 }
