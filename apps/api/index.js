@@ -1,52 +1,12 @@
-const path = require("path");
 const cors = require("cors");
 const express = require("express");
-const sqlite3 = require("sqlite3");
+const { query, run } = require("./db");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// conexao com sqlite
-const dbPath = path.join(__dirname, "data", "inventory.db");
-const db = new sqlite3.Database(dbPath, (err) => {
-    if (err) {
-        console.error("erro ao conectar no banco:", err.message);
-        process.exit(1);
-    }
-    console.log("sqlite conectado:", dbPath);
-});
-
-// cria tabela na primeira execucao
-db.run(`
-    CREATE TABLE IF NOT EXISTS stock (
-        productID    INTEGER PRIMARY KEY AUTOINCREMENT,
-        nameProduct  VARCHAR(100) NOT NULL,
-        qntdProduct  INTEGER NOT NULL DEFAULT 0,
-        priceProduct REAL    NOT NULL DEFAULT 0
-    )
-`);
-
 app.use(cors());
 app.use(express.json({ limit: "100kb" }));
-
-// helper pra rodar queries com promise (evita callback hell)
-function query(sql, params = []) {
-    return new Promise((resolve, reject) => {
-        db.all(sql, params, (err, rows) => {
-            if (err) reject(err);
-            else resolve(rows);
-        });
-    });
-}
-
-function run(sql, params = []) {
-    return new Promise((resolve, reject) => {
-        db.run(sql, params, function (err) {
-            if (err) reject(err);
-            else resolve({ lastID: this.lastID, changes: this.changes });
-        });
-    });
-}
 
 // GET /produtos
 app.get("/produtos", async (_req, res) => {
