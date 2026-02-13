@@ -1,70 +1,38 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose, DialogFooter, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast, Toaster } from "sonner"
-
-interface Produto {
-    productID: number
-    nameProduct: string
-    qntdProduct: number
-    priceProduct: number
-}
-
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001"
+import { useProducts } from "./hooks/use-products"
 
 export default function InventoryPage() {
-    const [produtos, setProdutos] = useState<Produto[]>([])
+    const { produtos, loading, criar } = useProducts()
     const [openCriar, setOpenCriar] = useState(false)
 
-    // busca os produtos da api
-    async function carregarProdutos() {
-        try {
-            const res = await fetch(`${API}/produtos`)
-            const data = await res.json()
-            setProdutos(data)
-        } catch (err) {
-            console.log("erro ao buscar produtos", err)
-        }
-    }
-
-    useEffect(() => {
-        carregarProdutos()
-    }, [])
-
-    // cria produto novo
     async function handleCriar(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault()
-        const form = new FormData(e.currentTarget)
+        const fd = new FormData(e.currentTarget)
 
         try {
-            const res = await fetch(`${API}/produtos`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    nameProduct: form.get("nome"),
-                    qntdProduct: Number(form.get("quantidade")),
-                    priceProduct: Number(form.get("preco")),
-                }),
+            await criar({
+                nameProduct: fd.get("nome") as string,
+                qntdProduct: Number(fd.get("quantidade")),
+                priceProduct: Number(fd.get("preco")),
             })
-
-            if (!res.ok) throw new Error("falhou")
-
             setOpenCriar(false)
             toast.success("Produto criado!")
-            carregarProdutos()
-        } catch {
-            toast.error("Erro ao criar produto")
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Erro ao criar produto")
         }
     }
 
     return (
         <div className="flex min-h-screen items-center justify-center gap-3 bg-zinc-50 font-sans dark:bg-black">
 
-            {/* botao pra ver produtos */}
+            {/* listagem */}
             <Dialog>
                 <DialogTrigger asChild>
                     <Button variant="outline" className="cursor-pointer border border-primary">
@@ -78,8 +46,12 @@ export default function InventoryPage() {
                             Confira todos os produtos disponíveis abaixo.
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="max-h-[50vh] overflow-y-auto">
-                        {produtos.length === 0 ? (
+                    <div className="no-scrollbar -mx-4 max-h-[50vh] overflow-y-auto px-4">
+                        {loading ? (
+                            <p className="py-8 text-center text-sm text-muted-foreground">
+                                Carregando...
+                            </p>
+                        ) : produtos.length === 0 ? (
                             <p className="py-8 text-center text-sm text-muted-foreground">
                                 Nenhum produto cadastrado.
                             </p>
@@ -88,7 +60,8 @@ export default function InventoryPage() {
                                 <div key={p.productID} className="border-b py-2 last:border-b-0">
                                     <p className="font-bold">{p.nameProduct}</p>
                                     <p className="text-sm text-muted-foreground">
-                                        Qtd: {p.qntdProduct} — R$ {p.priceProduct}
+                                        Qtd: {p.qntdProduct} — R${" "}
+                                        {p.priceProduct.toFixed(2)}
                                     </p>
                                 </div>
                             ))
@@ -97,7 +70,7 @@ export default function InventoryPage() {
                 </DialogContent>
             </Dialog>
 
-            {/* botao pra criar produto */}
+            {/* cadastro */}
             <Dialog open={openCriar} onOpenChange={setOpenCriar}>
                 <DialogTrigger asChild>
                     <Button variant="outline" className="cursor-pointer border border-primary">
@@ -123,7 +96,7 @@ export default function InventoryPage() {
                             </div>
                             <div className="grid gap-2">
                                 <Label htmlFor="preco">Valor (R$)</Label>
-                                <Input id="preco" name="preco" type="number" min={0} placeholder="0" required />
+                                <Input id="preco" name="preco" type="number" min={0} step="0.01" placeholder="0.00" required />
                             </div>
                         </div>
                         <DialogFooter>

@@ -4,74 +4,92 @@ const express = require("express");
 const sqlite3 = require("sqlite3");
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 
-// banco de dados
+// conexao com sqlite
 const dbPath = path.join(__dirname, "data", "inventory.db");
 const db = new sqlite3.Database(dbPath, (err) => {
     if (err) {
         console.error("erro ao conectar no banco:", err.message);
         process.exit(1);
     }
-    console.log("conectado no sqlite");
+    console.log("sqlite conectado:", dbPath);
 });
 
-// cria a tabela se nao existir
+// cria tabela na primeira execucao
 db.run(`
     CREATE TABLE IF NOT EXISTS stock (
         productID    INTEGER PRIMARY KEY AUTOINCREMENT,
         nameProduct  VARCHAR(100) NOT NULL,
         qntdProduct  INTEGER NOT NULL DEFAULT 0,
-        priceProduct INTEGER NOT NULL DEFAULT 0
+        priceProduct REAL    NOT NULL DEFAULT 0
     )
 `);
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "100kb" }));
 
-// listar produtos
-app.get("/produtos", (req, res) => {
-    db.all("SELECT * FROM stock ORDER BY productID DESC", (err, rows) => {
-        if (err) {
-            console.error(err);
-            return res.status(500).json({ error: "erro ao buscar produtos" });
-        }
-        res.json(rows);
+// helper pra rodar queries com promise (evita callback hell)
+function query(sql, params = []) {
+    return new Promise((resolve, reject) => {
+        db.all(sql, params, (err, rows) => {
+            if (err) reject(err);
+            else resolve(rows);
+        });
     });
+}
+
+function run(sql, params = []) {
+    return new Promise((resolve, reject) => {
+        db.run(sql, params, function (err) {
+            if (err) reject(err);
+            else resolve({ lastID: this.lastID, changes: this.changes });
+        });
+    });
+}
+
+// GET /produtos
+app.get("/produtos", async (_req, res) => {
+    try {
+        const rows = await query("SELECT * FROM stock ORDER BY productID DESC");
+        res.json(rows);
+    } catch (err) {
+        console.error("erro ao buscar produtos:", err.message);
+        res.status(500).json({ error: "falha ao buscar produtos" });
+    }
 });
 
-// criar produto
-app.post("/produtos", (req, res) => {
+// POST /produtos
+app.post("/produtos", async (req, res) => {
     const { nameProduct, qntdProduct, priceProduct } = req.body;
 
-    // validacao basica
-    if (!nameProduct || nameProduct.trim() === "") {
-        return res.status(400).json({ error: "nome do produto é obrigatório" });
+    const name = typeof nameProduct === "string" ? nameProduct.trim() : "";
+    if (!name || name.length > 200) {
+        return res.status(400).json({ error: "nome inválido (obrigatório, max 200 chars)" });
     }
 
     const qty = Number(qntdProduct);
+    if (!Number.isFinite(qty) || qty < 0 || !Number.isInteger(qty)) {
+        return res.status(400).json({ error: "quantidade deve ser inteiro >= 0" });
+    }
+
     const price = Number(priceProduct);
-
-    if (isNaN(qty) || qty < 0) {
-        return res.status(400).json({ error: "quantidade inválida" });
-    }
-    if (isNaN(price) || price < 0) {
-        return res.status(400).json({ error: "preço inválido" });
+    if (!Number.isFinite(price) || price < 0) {
+        return res.status(400).json({ error: "preço deve ser >= 0" });
     }
 
-    db.run(
-        "INSERT INTO stock (nameProduct, qntdProduct, priceProduct) VALUES (?, ?, ?)",
-        [nameProduct.trim(), qty, price],
-        function (err) {
-            if (err) {
-                console.error(err);
-                return res.status(500).json({ error: "erro ao criar produto" });
-            }
-            res.status(201).json({ message: "produto criado", id: this.lastID });
-        }
-    );
+    try {
+        const result = await run(
+            "INSERT INTO stock (nameProduct, qntdProduct, priceProduct) VALUES (?, ?, ?)",
+            [name, qty, price]
+        );
+        res.status(201).json({ id: result.lastID });
+    } catch (err) {
+        console.error("erro ao criar produto:", err.message);
+        res.status(500).json({ error: "falha ao criar produto" });
+    }
 });
 
 app.listen(PORT, () => {
-    console.log(`servidor rodando em http://localhost:${PORT}`);
+    console.log(`api rodando em http://localhost:${PORT}`);
 });
